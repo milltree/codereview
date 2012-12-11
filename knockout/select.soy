@@ -1,0 +1,373 @@
+{namespace eca.templates.select}
+
+/**
+ * @param interstitial
+ * @param search
+ * @param insurance
+ * @param infoMessages
+ * @param emissionLegend
+ * @param twoCreditCardsLabel
+ * @param promoSticker
+ */
+{template .root}
+  {call .cars}
+    {param interstitial: $interstitial /}
+    {param search: $search /}
+    {param insurance: $insurance /}
+    {param infoMessages: $infoMessages /}
+    {param emissionLegend: $emissionLegend /}
+    {param twoCreditCardsLabel: $twoCreditCardsLabel /}
+    {param promoSticker: $promoSticker /}
+  {/call}
+{/template}
+
+/**
+ * @param interstitial
+ * @param search
+ * @param insurance
+ * @param infoMessages
+ * @param emissionLegend
+ * @param twoCreditCardsLabel
+ * @param promoSticker
+ */
+{template .cars}
+<div id="select" data-promoId="{$search.promoId}">
+  <div id="contents">
+    <div id="enquiry">
+      <ul>
+        <li>
+          <a href="javascript://" data-bind="click: editSearch" data-tracking-event="mouseup" data-tracking-id="499">
+            <span class="pickuploc">{$search.pickupLocation}</span>
+            <span class="pickupdate">{$search.pickupDate} - {$search.pickupTime}</span>
+          </a>
+        </li>
+        <li>
+          <a href="javascript://" data-bind="click: editSearch" data-tracking-event="mouseup" data-tracking-id="500">
+            <span class="returnloc">{$search.returnLocation}</span>
+            <span class="returndate">{$search.returnDate} - {$search.returnTime}</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- ko if: waiting -->
+      <div class="loading page" {literal}data-bind="css: { hidden: !waiting() }"{/literal}>
+        <h2 class="h2">
+          <span>{msg desc="searching"}Searching{/msg}</span>
+          <span class="h3">{msg desc="searching.claim"}Europcar is searching for the best prices for your car rental.{/msg}</span>
+        </h2>
+      </div>
+      <div id="promos" {literal}data-bind="css: { hidden: !waiting() }"{/literal}>
+        {$interstitial}
+      </div>
+    <!-- /ko -->
+
+    <!-- ko ifnot: waiting -->
+      <div class="main-content hidden" {literal}data-bind="css: { hidden: waiting() }"{/literal}>
+        <!-- ko if: segmentsVisible() == false -->
+          <!-- ko if: errors().length > 0 -->
+            <ul class="errors overall">
+              <!-- ko foreach: errors -->
+              <li data-bind="html: $data"></li>
+              <!-- /ko -->
+              <li class="btns"><a href="javascript://" class="bt grey" data-bind="click: editSearch"><span>{msg desc="searching.edit"}Edit Search{/msg}</span></a></li>
+            </ul>
+          <!-- /ko -->
+        <!-- /ko -->
+
+        <!-- ko ifnot: segmentsVisible() == false -->
+          <div id="filter" class="filter js_filternav">
+            <ul class="tabs" data-bind="foreach: segments">
+              <li {literal}data-bind="css: {active: id === $parent.activeSegmentId()}, event: {click: $parent.activateSegment}"{/literal}><span data-bind="text: name"></span></li>
+            </ul>
+
+            <!-- ko if: errors().length > 0 -->
+              <ul class="errors overall">
+                <!-- ko foreach: errors -->
+                <li data-bind="html: $data"></li>
+                <!-- /ko -->
+                <li class="btns"><a href="javascript://" class="bt grey" data-bind="click: editSearch"><span>{msg desc="searching.edit"}Edit Search{/msg}</span></a></li>
+              </ul>
+            <!-- /ko -->
+            <!-- ko ifnot: errors().length > 0 -->
+              <p>{msg desc="results.1"}We have found{/msg} <span class="result" {literal}data-bind="text: numberOfVehicles()"{/literal}></span> {msg desc="results.2"}vehicles.{/msg}</p>
+
+              <ul class="sort">
+                <li>{msg desc="sorting.title"}Sort by:{/msg}</li>
+                <li><a href="javascript://" {literal}data-bind="css: {selected: activeSorttype() === 'PRICE'}, click: sortByPrice"{/literal}>{msg desc="sorting.price"}Price{/msg}</a></li>
+                <li class="last"><a href="javascript://" {literal}data-bind="css: {selected: activeSorttype() === 'SIZE'}, click: sortBySize"{/literal}>{msg desc="sorting.size"}Size{/msg}</a></li>
+              </ul>
+
+              {call eca.templates.common.infoMessages}
+                {param infoMessages: $infoMessages /}
+              {/call}
+
+              {if $insurance == true}
+                <div class="notice overall">
+                  <!-- ko if: withInsurance() == "N" -->
+                    <h2 class="h3">{msg desc="insurance.excluded.title"}Insurance excluded prices{/msg}</h2>
+                    <p>
+                      {msg desc="insurance.excluded.text"}Want more peace of mind?{/msg} <a class="arrowlink" href="javascript://" {literal}data-bind="click: includeInsurance"{/literal}>{msg desc="insurance.excluded.link"}Check insurance included prices{/msg}</a>
+                    </p>
+                  <!-- /ko -->
+                  <!-- ko if: withInsurance() == "Y" -->
+                    <h2 class="h3">{msg desc="insurance.included.title"}Insurance included prices{/msg}</h2>
+                    <p>
+                      {msg desc="insurance.included.text"}Already covered by your credit card?{/msg} <a class="arrowlink" href="javascript://" {literal}data-bind="click: excludeInsurance"{/literal}>{msg desc="insurance.included.link"}Check insurance excluded prices{/msg}</a>
+                    </p>
+                  <!-- /ko -->
+                </div>
+              {/if}
+
+              <!-- ko ifnot: isFavoriteQuoteAvailable -->
+              <div class="notice overall">
+                <h2 class="h3">{msg desc="favorites.quote.unavailable.title"}Your favorite quote is not available anymore{/msg}</h2>
+                <p>
+                  {msg desc="favorites.quote.unavailable.text"}We are sorry, your favorite quote is not available anymore.
+                  Below you will find other great Europcar offers. Or you can try and adjust your search data
+                  <a class="arrowlink" href="javascript://" data-bind="click: adjustSearch">here</a>.{/msg}
+                </p>
+              </div>
+              <!-- /ko -->
+
+              <!-- ko with: promoStickerController -->
+                {call eca.templates.common.promoSticker}
+                  {param content: $promoSticker /}
+                {/call}
+              <!-- /ko -->
+
+              <!-- ko if: categoryVehicleControllersVisible() -->
+                <h2 class="h2">{msg desc="choose"}Choose one of these...{/msg}</h2>
+                <div class="featured">
+                  <ul data-bind="foreach: categoryVehicleControllers">
+                    <li>
+                      <a {literal}data-bind="attr: {href: vehicle.modelAnchor}"{/literal} data-tracking-event="mouseup" data-tracking-id="528">
+                        <div class="visual"><img {literal}data-bind="event: { error: $root.placeholder }, attr: {src: vehicle.imageSmall, alt: vehicle.name}"{/literal} /></div>
+                        <span class="arrowlink" data-bind="text: vehicle.category"></span>
+                      </a>
+                      <span data-bind="text: priceController.price.currentDisplayPrice"></span>
+                    </li>
+                  </ul>
+                </div>
+              <!-- /ko -->
+            <!-- /ko -->
+
+            <!-- ko with: $root -->
+              {call .quoteincludes}
+                {param search: $search /}
+              {/call}
+            <!-- /ko -->
+          </div>
+
+          <!-- ko ifnot: errors().length > 0 -->
+            <ul data-bind="foreach: vehicleControllers">
+              <li class="cartile" {literal}data-bind="attr: {id: vehicle.modelId}, css: {preselected: preselected}"{/literal}>
+                {call .car}
+                  {param emissionLegend: $emissionLegend /}
+                  {param twoCreditCardsLabel: $twoCreditCardsLabel /}
+                {/call}
+              </li>
+            </ul>
+
+            <!-- ko with: $root -->
+              <div class="teaser">
+                {call .quoteincludes}
+                  {param search: $search /}
+                {/call}
+              </div>
+            <!-- /ko -->
+
+            <div class="pagetools">
+              <!-- ko if: pages().length > 1 -->
+              <ul class="pagination">
+                <!-- ko if: activePage() != 1 -->
+                <li class="prev" data-bind="click: activatePreviousPage">{msg desc="pagination.prev"}Previous{/msg}</li>
+                <!-- /ko -->
+                <!-- ko foreach: pages -->
+                <li {literal}data-bind="text: $data, click: $parent.activePage() != $data ? $parent.activatePage : '', css: {selected: $parent.activePage() == $data}"{/literal}></li>
+                <!-- /ko -->
+                <!-- ko if: activePage() != pages()[pages().length - 1] -->
+                <li class="next" data-bind="click: activateNextPage">{msg desc="pagination.next"}Next{/msg}</li>
+                <!-- /ko -->
+              </ul>
+              <!-- /ko -->
+              <ul class="tools">
+                <li class="print js_print" title="{msg desc="tools.print"}Print{/msg}">{msg desc="tools.print"}Print{/msg}</li>
+              </ul>
+            </div>
+          <!-- /ko -->
+        <!-- /ko -->
+      </div>
+    <!-- /ko -->
+
+  </div>
+  <!-- ko ifnot: waiting -->
+    <!-- ko ifnot: errors().length > 0 -->
+      {call eca.templates.common.vehicleAndRateDetails}
+        {param emissionLegend: $emissionLegend /}
+        {param twoCreditCardsLabel: $twoCreditCardsLabel /}
+      {/call}
+      {call eca.templates.common.sendQuote /}
+    <!-- /ko -->
+  <!-- /ko -->
+</div>
+{/template}
+
+/**
+ * @param emissionLegend
+ * @param twoCreditCardsLabel
+ */
+{template .car}
+<form action="step2submit.action" method="get" {literal}data-bind="css: {open: optionsController.optionsVisible() == true}, event: {submit: book}"{/literal}>
+  <h3><span class="h2" data-bind="text: vehicle.name"></span> <span class="similar">{msg desc="vehicle.similar"}or similar{/msg}</span></h3>
+  <div class="details" {literal}data-bind="css: {notice_availability: lowAvailability, notice_onrequest: availableOnRequest}"{/literal}>
+    <div class="col">
+      <span class="cat" data-bind="text: vehicle.category"></span>
+      <div class="visual" data-bind="click: $parent.vehicleAndRateDetails">
+        <img {literal}data-bind="event: {error: $root.placeholder}, attr: {src: vehicle.imageMedium, alt: vehicle.tooltip, title: vehicle.tooltip}"{/literal} />
+      </div>
+      <!-- ko if: vehicle.twoCreditCards -->
+        <div class="twoCC tooltip">
+          <div class="content">{$twoCreditCardsLabel}</div>
+        </div>
+      <!-- /ko -->
+      <ul class="features">
+        <li class="milage">{msg desc="vehicle.mileage"}Mileage:{/msg} <span data-bind="text: optionsController.mileageController.mileage.label()"></span></li>
+        <!-- ko with: vehicle -->
+          {call eca.templates.common.features}
+            {param emissionLegend: $emissionLegend /}
+          {/call}
+        <!-- /ko -->
+      </ul>
+      <span class="arrowlink" data-bind="click: $parent.vehicleAndRateDetails">{msg desc="vehicle.details"}Vehicle and rate details{/msg}</span>
+      <!-- ko if: lowAvailability -->
+        <p class="notice">
+          <span>{msg desc="vehicle.availability.low.title"}Low availability:{/msg}</span>
+          {msg desc="vehicle.availability.low.text"}Bookings for this vehicle will be confirmed by email within 48 hours.{/msg}
+        </p>
+      <!-- /ko -->
+      <!-- ko if: availableOnRequest -->
+        <p class="notice">
+          <span>{msg desc="vehicle.availability.request.title"}This vehicle requires 48 hours advance booking period to confirm its availability:{/msg}</span>
+          {msg desc="vehicle.availability.request.text"}To book this vehicle, please contact a Europcar Call Center or modify your booking details.{/msg}
+        </p>
+      <!-- /ko -->
+    </div>
+
+    <div class="col quote">
+      <ul class="tools">
+        <!-- ko if: isFavorite -->
+          <li class="fav notxt tooltip active" data-bind="click: removeFavorite">
+            {msg desc="favorites.icon.text.set"}Quote set as favorite{/msg}
+            <div class="content">{msg desc="favorites.icon.text.set"}Quote set as favorite{/msg}</div>
+          </li>
+        <!-- /ko -->
+        <!-- ko ifnot: isFavorite -->
+          <li class="fav notxt tooltip" data-bind="click: addToFavorites" data-tracking-event="mouseup" data-tracking-id="516">
+            {msg desc="favorites.icon.text.notset"}Set quote as favorite{/msg}
+            <div class="content">{msg desc="favorites.icon.text.notset"}Set quote as favorite{/msg}</div>
+          </li>
+        <!-- /ko -->
+        <li class="rec notxt" data-bind="click: $root.sendQuote">{msg desc="quote.send"}Send quote{/msg}</li>
+      </ul>
+      <!-- ko with: optionsController -->
+        <h3 class="h2">{msg desc="price.options"}Options{/msg}</h3>
+        <!-- ko if: optionsVisible() == false -->
+          <a href="javascript://" class="arrowlink" {literal}data-bind="click: showOptions, css: {disabled: optionsDisabled}"{/literal}  data-tracking-event="mouseup" data-tracking-id="522">
+            <!-- ko ifnot: optionsChosen -->
+              <span>{msg desc="price.options.choose"}Choose my options{/msg}</span>
+            <!-- /ko -->
+            <!-- ko if: optionsChosen -->
+              <span>{msg desc="price.options.change"}Change my options{/msg}</span>
+            <!-- /ko -->
+          </a>
+        <!-- /ko -->
+        <ul class="items">
+          <!-- ko ifnot: optionsChosen -->
+            <li>{msg desc="price.options.none"}No options are chosen yet{/msg}</li>
+          <!-- /ko -->
+          <!-- ko if: mileageController.mileage.originalValue != mileageController.mileage.value() -->
+            <li>
+              <span class="name">{msg desc="price.options.mileage"}Mileage:{/msg} <span {literal}data-bind="text: mileageController.mileage.label()"{/literal}></span></span>
+            </li>
+          <!-- /ko -->
+          <!-- ko foreach: extrasController.selectedExtras -->
+            <li>
+              <span class="name" {literal}data-bind="html: quantityAndTitle"{/literal}></span>
+              <span class="txt" {literal}data-bind="html: excess"{/literal}></span>
+            </li>
+          <!-- /ko -->
+        </ul>
+      <!-- /ko -->
+      <ul class="price">
+        <li>
+          <!-- ko if: priceController.price.prepaid() == "Y" -->
+            <span class="name">{msg desc="price.online"}Pay now price{/msg}</span>
+          <!-- /ko -->
+          <!-- ko ifnot: priceController.price.prepaid() == "Y" -->
+            <span class="name">{msg desc="price.pickup"}Pay at pick up price{/msg}</span>
+          <!-- /ko -->
+          <span class="price" {literal}data-bind="text: priceController.price.currentTotalDisplayPrice, css: {loading: priceController.waiting}"{/literal}></span>
+        </li>
+      </ul>
+      <!-- ko if: priceController.errors().length > 0 -->
+        <ul class="errors" data-bind="foreach: priceController.errors">
+          <li data-bind="html: $data"></li>
+        </ul>
+      <!-- /ko -->
+      <div class="bt box submit" {literal}data-bind="css: {disabled: bookingDisabled}"{/literal}>
+        <input type="hidden" name="modelId" data-bind="attr: {literal}{value: vehicle.modelId}{/literal}">
+        <input type="hidden" name="segmentId" data-bind="attr: {literal}{value: vehicle.segmentId}{/literal}">
+        <input type="hidden" name="fCollectPrice1" data-bind="attr: {literal}{value: priceController.price.currentPrice}{/literal}">
+        <input type="hidden" name="prepaid" data-bind="attr: {literal}{value: priceController.price.prepaid}{/literal}">
+        <input type="hidden" name="mil" data-bind="attr: {literal}{value: optionsController.mileageController.mileage.value}{/literal}">
+        <!-- ko foreach: optionsController.extrasController.extras -->
+          <!-- ko if: quantity() > 0 -->
+            <input type="hidden" data-bind="attr: {literal}{name: tcParamName(), value: tc}{/literal}">
+            <input type="hidden" data-bind="attr: {literal}{name: idParamName(), value: id}{/literal}">
+            <input type="hidden" data-bind="attr: {literal}{name: quantityParamName(), value: quantity()}{/literal}">
+          <!-- /ko -->
+        <!-- /ko -->
+        
+        <!-- start: the following parameters are only required for tracking (see ECANF-1056) -->
+        <input type="hidden" name="choiceInPayment" value="2">
+        <input type="hidden" name="mileageOption" value="3">
+        <input type="hidden" name="segmentName" data-bind="attr: {literal}{value: $root.activeSegmentCode()}{/literal}">
+        <!-- end -->
+        
+        <input value="{msg desc="submit"}CHOOSE NOW{/msg}" type="submit" {literal}data-bind="attr: {disabled: bookingDisabled()}"{/literal} />
+      </div>
+    </div>
+  </div>
+  <!-- ko with: optionsController -->
+    <span class="bt box toggle options" {literal}data-bind="click: toggleOptions, css: {disabled: optionsDisabled}"{/literal}>
+      <!-- ko ifnot: optionsVisible -->
+        <span>{msg desc="options.show"}CHOOSE MY OPTIONS{/msg}</span>
+      <!-- /ko -->
+      <!-- ko if: optionsVisible -->
+        <span>{msg desc="options.hide"}HIDE MY OPTIONS{/msg}</span>
+      <!-- /ko -->
+    </span>
+    <!-- -->
+    {call eca.templates.common.options /}
+  <!-- /ko -->
+</form>
+{/template}
+
+
+/**
+ * @param search
+ */
+{template .quoteincludes}
+<div class="quoteincludes">
+  <h4 class="h4">{msg desc="quote.includes"}YOUR QUOTE INCLUDES{/msg}</h4>
+  <ul>
+    <!-- ko foreach: includes -->
+      <li><span data-bind="html: $data"></span></li>
+    <!-- /ko -->
+    {if $search.promoCode}
+      <li><span>{msg desc="quote.includes.promocode"}Contract/promo:{/msg} {$search.promoCode}</span></li>
+    {/if}
+  </ul>
+</div>
+{/template}

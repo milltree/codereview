@@ -1,0 +1,739 @@
+{namespace eca.templates.book_and_pay}
+
+/**
+ * @param enquiryContent
+ * @param basketContent
+ * @param vehicleContent
+ * @param formContent
+ * @param lightBoxContents
+ * @param additionalFormContents
+ * @param legalText
+ */
+{template .root}
+<div id="book">
+  <div id="contents">
+    {call .enquiry}
+      {param content: $enquiryContent /}
+    {/call}
+    <div class="loading page" {literal}data-bind="css: { hidden: !waiting() }"{/literal}>
+      <h2 class="h2">
+        <span>{msg desc="loading"}Loading{/msg}</span>
+      </h2>
+    </div>
+    <div class="main-content hidden" {literal}data-bind="css: { hidden: waiting() }"{/literal}>
+      <!-- ko if: errors().length > 0 -->
+      <div class="content">
+        <ul class="errors overall">
+          <!-- ko foreach: errors -->
+            <li data-bind="html: $data"></li>
+          <!-- /ko -->
+          <li class="btns"><a href="javascript://" class="bt grey" data-bind="click: editSearch"><span>{msg desc="search.edit"}Edit Search{/msg}</span></a></li>
+        </ul>
+      </div>
+      <!-- /ko -->
+      <div class="content hidden" {literal}data-bind="css: { hidden: errors().length > 0 }"{/literal}>
+        {call .basket}
+          {param basketContent: $basketContent /}
+          {param enquiryContent: $enquiryContent /}
+          {param vehicleContent: $vehicleContent /}
+        {/call}
+        {call .vehicle}
+          {param content: $vehicleContent /}
+        {/call}
+        {call .form}
+          {param content: $formContent /}
+          {param legal: $legalText /}
+        {/call}
+        {call .pagetools /}
+      </div>
+    </div>
+  </div>
+  <div class="lightboxes hidden">
+    {call .lightboxes}
+      {param contents: $lightBoxContents /}
+      {param emissionLegend: $vehicleContent.emissionLegend /}
+      {param twoCreditCardsLabel: $vehicleContent.twoCreditCardsLabel /}
+    {/call}
+  </div>
+  {call .additionalForms}
+    {param contents: $additionalFormContents /}
+  {/call}
+</div>
+{/template}
+
+/**
+ * @param content
+ */
+{template .enquiry}
+<div id="enquiry">
+  <ul>
+    <li class="tooltip">
+      <a href="javascript://" data-bind="click: editSearch">
+        <span class="pickuploc">{$content.pickupLocation}</span>
+        <span class="pickupdate">{$content.pickupDate} - {$content.pickupTime}</span>
+      </a>
+      <span class="content">{$content.pickupTooltip}</span>
+    </li>
+    <li class="tooltip">
+      <a href="javascript://" data-bind="click: editSearch">
+        <span class="returnloc">{$content.returnLocation}</span>
+        <span class="returndate">{$content.returnDate} - {$content.returnTime}</span>
+      </a>
+      <span class="content">{$content.returnTooltip}</span>
+    </li>
+  </ul>
+  <h2 class="h1">{msg desc="title"}Please review your selection!{/msg}</h2>
+  
+  <div class="hidden" {literal}data-bind="css: { hidden: waiting() }"{/literal}>
+    {call eca.templates.common.infoMessages}
+      {param infoMessages: $content.infoMessages /}
+    {/call}
+    <!-- ko with: promoStickerController -->
+      {call eca.templates.common.promoSticker}
+        {param content: $content.promoSticker /}
+      {/call}
+    <!-- /ko -->
+  </div>
+</div>
+{/template}
+
+/**
+ * @param basketContent
+ * @param enquiryContent
+ * @param vehicleContent
+ */
+{template .basket}
+<div id="basket" {literal}data-bind="css: {fixed: basketController.fixedPos(), bottom: basketController.bottomPos()}"{/literal}>
+  <div class="quote">
+  <h3 class="h2">{msg desc="basket.title"}Rental Details{/msg}</h3>
+  
+  {call .price}
+    {param content: $basketContent /}
+  {/call}
+  
+  <h4 class="h2">{msg desc="basket.locations.title"}Rental Locations{/msg} <a href="javascript://" class="arrowlink" data-bind="click: editSearch">{msg desc="basket.locations.change"}Change{/msg}</span></a></h4>
+  <ul class="content locations">
+    <li>
+      <h5 class="h4">{msg desc="basket.locations.pickup"}Pick up location{/msg}</h5>
+      <span class="pickuploc">{$enquiryContent.pickupLocation}</span>
+      <span class="pickupdate">{$enquiryContent.pickupDate} - {$enquiryContent.pickupTime}</span>
+    </li>
+    <li>
+      <h5 class="h4">{msg desc="basket.locations.return"}Return location{/msg}</h5>
+      <span class="returnloc">{$enquiryContent.returnLocation}</span>
+      <span class="returndate">{$enquiryContent.returnDate} - {$enquiryContent.returnTime}</span>
+    </li>
+  </ul>
+  
+  <h4 class="h2">{msg desc="basket.options.title"}Options{/msg}
+  {if $vehicleContent.upgrade == 'N'}
+    <!-- ko if: optionsController.optionsVisible() == false -->
+      <a href="javascript://" class="arrowlink" {literal}data-bind="click: optionsController.showOptions, css: {disabled: optionsController.optionsDisabled}"{/literal}>
+        <!-- ko ifnot: optionsChosen -->
+          {msg desc="basket.options.choose"}Choose my options{/msg}
+        <!-- /ko -->
+        <!-- ko if: optionsChosen -->
+          {msg desc="basket.options.change"}Change my options{/msg}
+        <!-- /ko -->
+      </a>
+    <!-- /ko -->
+  {/if}
+  </h4>
+  <ul id="basketOptions" class="content items">
+    <!-- ko ifnot: optionsChosen -->
+      <li id="noOptions">{msg desc="basket.options.none"}No options are chosen yet{/msg}</li>
+    <!-- /ko -->
+    <!-- ko if: mileageChosen -->
+      <li id="basketMileage">
+        <span class="name">{msg desc="basket.options.mileage"}Mileage:{/msg} <span {literal}data-bind="text: mileageLabel"{/literal}></span></span>
+      </li>
+    <!-- /ko -->
+    <!-- ko with: youngDriverController.youngDriverSurchargeController.unknownExtra -->
+      <li id="unknownExtra">
+        <span class="name" data-bind="html: name"></span>
+        <span class="price" data-bind="html: price"></span>
+      </li>
+    <!-- /ko -->
+    {foreach $extra in $basketContent.extras}
+      <li>
+        <span class="name">{$extra.name}</span>
+        <span class="price">{$extra.price}</span>
+        <span class="txt">{$extra.excess}</span>
+      </li>
+    {/foreach}
+  </ul>
+  {if length($basketContent.includes) > 0}
+    <h4 class="h2 toggle open" {literal}data-bind="event: { click: $root.toggleBasketContent }"{/literal}>{msg desc="basket.price.includes"}Price Includes{/msg}</h4>
+    <ul id="basketIncludes" class="content list">
+      {foreach $include in $basketContent.includes}
+      <li>{$include}</li>
+      {/foreach}
+    </ul>
+  {/if}
+  <div id="basketExcludesContainer" class="{if length($basketContent.excludes) == 0}hidden{/if}">
+    <h4 class="h2 toggle" {literal}data-bind="event: { click: $root.toggleBasketContent }"{/literal}>{msg desc="basket.price.excludes"}Price Excludes{/msg}</h4>
+    <ul id="basketExcludes" class="content list">
+      {foreach $exclude in $basketContent.excludes}
+      <li>{$exclude}</li>
+      {/foreach}
+    </ul>
+  </div>
+  {if $basketContent.cancellationPolicy}
+    <h4 class="h2 toggle open" {literal}data-bind="event: { click: $root.toggleBasketContent }"{/literal}>{msg desc="basket.cancellation"}Cancellation Policy{/msg}</h4>
+    <div id="basketCancellation" class="content">{$basketContent.cancellationPolicy}</div>
+  {/if}
+  {if $basketContent.bookingFees}
+    <h4 class="h2 toggle open" {literal}data-bind="event: { click: $root.toggleBasketContent }"{/literal}>{msg desc="basket.fees"}Booking Fees{/msg}</h4>
+    <div id="basketBookingFees" class="content">{$basketContent.bookingFees}</div>
+  {/if}
+  </div>
+  
+  <div class="submit_quote">
+    <div class="content">
+      {call .price}
+        {param content: $basketContent /}
+      {/call}
+      <!-- ko if: $root.confirmErrorVisible -->
+        <span class="error">{msg desc="basket.confirm.error"}Please choose a login option above and/or ensure you provide all mandatory booking details.  Don't forget to approve the Terms and Conditions!{/msg}</span>
+      <!-- /ko -->
+      <div class="bt box submit" {literal}data-bind="event: { click: $root.confirm }, css: {disabled: $root.confirmDisabled()}"{/literal}>
+        <!-- ko if: prepaidController.price.prepaid() == "Y" -->
+          <span>{msg desc="basket.confirm.online"}PAY NOW{/msg}</span>
+        <!-- /ko -->
+        <!-- ko ifnot: prepaidController.price.prepaid() == "Y" -->
+          <span>{msg desc="basket.confirm.pickup"}PAY AT PICK UP{/msg}</span>
+        <!-- /ko -->
+      </div>
+      <p class="security">{msg desc="basket.security"}This site is on a secure server.  All your details are encrypted.{/msg}</p>
+    </div>
+  </div>
+</div>
+{/template}
+
+/**
+ * @param content
+ */
+{template .price}
+  <ul class="price">
+    <!-- ko ifnot: formController.creditCardController.paymentUpdated -->
+      <!-- ko if: prepaidController.price.prepaid() == "Y" -->
+        <li class="estimated">
+          <span class="name">{msg desc="basket.price.online"}Pay now price{/msg}</span>
+          {if $content.price.exchangePrice}
+            <span class="price" data-bind="{literal}css: {loading: updateOptionsController.waiting}{/literal}">{$content.price.exchangePrice}</span>
+            <span class="txt">{msg desc="basket.price.guaranteed"}Guaranteed price{/msg}</span>
+          {else}
+            <span class="price" data-bind="{literal}css: {loading: updateOptionsController.waiting}{/literal}">{$content.price.amountPrice}</span>
+          {/if}
+        </li>
+        {if $content.price.exchangePrice}
+          <li class="guaranteed">
+            <span class="price" data-bind="{literal}css: {loading: updateOptionsController.waiting}{/literal}">{$content.price.amountPrice}</span>
+            <span class="txt">{msg desc="basket.price.estimated"}Estimated based on exchange rate{/msg}</span>
+          </li>
+        {/if}
+      <!-- /ko -->
+      <!-- ko ifnot: prepaidController.price.prepaid() == "Y" -->
+        <li class="estimated">
+          <span class="name">{msg desc="basket.price.pickup"}Pay at pick up price{/msg}</span>
+          {if $content.price.exchangePrice}
+            <span class="price" data-bind="{literal}css: {loading: updateOptionsController.waiting}{/literal}">{$content.price.exchangePrice}</span>
+            <span class="txt">{msg desc="basket.price.estimated"}Estimated based on exchange rate{/msg}</span>
+          {else}
+            <span class="price" data-bind="{literal}css: {loading: updateOptionsController.waiting}{/literal}">{$content.price.amountPrice}</span>
+          {/if}
+        </li>
+        {if $content.price.exchangePrice}
+          <li class="guaranteed">
+            <span class="price" data-bind="{literal}css: {loading: updateOptionsController.waiting}{/literal}">{$content.price.amountPrice}</span>
+            <span class="txt">{msg desc="basket.price.guaranteed"}Guaranteed price{/msg}</span>
+          </li>
+        {/if}
+      <!-- /ko -->
+    <!-- /ko -->
+    <!-- ko if: formController.creditCardController.paymentUpdated -->
+      <li>
+        <span class="name updated" data-bind="html: formController.creditCardController.description"></span>
+        <span class="price" data-bind="{literal}css: {loading: updateOptionsController.waiting}, html: formController.creditCardController.displayPrice{/literal}"></span>
+      </li>
+    <!-- /ko -->
+    <!-- ko if: couponController.priceInfoMessage() -->
+      <li class="coupon">
+        <span class="notice" data-bind="html: couponController.priceInfoMessage()"></span>
+      </li>
+    <!-- /ko -->
+    <!-- ko if: couponController.priceWarnMessage() -->
+      <li class="coupon">
+        <span class="warn" data-bind="html: couponController.priceWarnMessage()"></span>
+      </li>
+    <!-- /ko -->
+  </ul>
+{/template}
+
+/**
+ * @param content
+ */
+{template .vehicle}
+<div id="cardetails" class="cartile" data-modelId="{$content.modelId}">
+  <!-- ko with: vehicle -->
+    <h3><span class="h2" data-bind="text: name"></span> <span class="similar">{msg desc="vehicle.similar"}or similar{/msg}</span><a class="arrowlink" href="/DotcarClient/backToStep2.action"><span>{msg desc="vehicle.selection.change"}Change selection{/msg}</span></a></h3>
+    <div class="details">
+      <div class="col">
+        <span class="cat" data-bind="text: category"></span>
+        <div class="visual" data-upgrade="{$content.upgrade}" data-modelId="{$content.modelId}" data-bind="click: $parent.vehicleAndRateDetails">
+          <img {literal}data-bind="event: {error: $root.placeholder}, attr: {src: imageMedium, alt: tooltip, title: tooltip}"{/literal} />
+        </div>
+        <!-- ko if: twoCreditCards -->
+          <span class="twoCC tooltip">
+            <span class="content">{$content.twoCreditCardsLabel}</span>
+          </span>
+        <!-- /ko -->
+        <ul class="features">
+          <li class="milage">{msg desc="vehicle.mileage"}Mileage:{/msg} <span data-bind="text: $parent.optionsController.mileageController.mileage.label()"></span></li>
+          {call eca.templates.common.features}
+            {param emissionLegend: $content.emissionLegend /}
+          {/call}
+        </ul>
+        <span class="arrowlink" data-upgrade="{$content.upgrade}" data-modelId="{$content.modelId}" data-bind="click: $parent.vehicleAndRateDetails">{msg desc="vehicle.details"}Vehicle and rate details{/msg}</span>
+      </div>
+    </div>
+  <!-- /ko -->
+  {if $content.upgrade == 'N'}
+    {call .paymentOption /}
+  {/if}
+  {call .upgrade}
+    {param content: $content.upgradeContent /}
+  {/call}
+  {if $content.upgrade == 'N'}
+    {call .recommendedExtras}
+      {param extras: $content.recommendedExtras /}
+    {/call}
+    <!-- ko with: optionsController -->
+      <span class="bt box toggle options" {literal}data-bind="click: toggleOptions, css: {disabled: optionsDisabled}"{/literal} data-tracking-event="mouseup" data-tracking-id="526">
+        <!-- ko ifnot: optionsVisible -->
+          <span>{msg desc="options.show"}CHOOSE MORE OPTIONS{/msg}</span>
+        <!-- /ko -->
+        <!-- ko if: optionsVisible -->
+          <span>{msg desc="options.hide"}HIDE MORE OPTIONS{/msg}</span>
+        <!-- /ko -->
+      </span>
+      <!-- ko if: $parent.updateOptionsController.updateWaiting -->
+        <div id="extras" class="extras" {literal}data-bind="visible: optionsVisible"{/literal}>
+          <div class="list">
+            <div class="loading inline">
+              <span class="h3">{msg desc="options.updating"}Updating selected options{/msg}</span>
+            </div>
+          </div>
+        </div>
+      <!-- /ko -->
+      <!-- ko if: $parent.updateOptionsController.errors().length > 0 -->
+        <ul class="errors" data-bind="foreach: $parent.updateOptionsController.errors">
+          <li data-bind="html: $data"></li>
+        </ul>
+      <!-- /ko -->
+      <!-- ko ifnot: $parent.updateOptionsController.updateWaiting -->
+        {call eca.templates.common.options /}
+      <!-- /ko -->
+    <!-- /ko -->
+  {else}
+    <p class="notice">{msg desc="options.upgrade.notice"}If you need to add options, use "Change selection" to see the full list.{/msg}</p>
+  {/if}
+</div>
+{/template}
+
+/**
+ * @param content
+ */
+{template .upgrade}
+<div id="upgradeContainer" data-modelId="{if $content and $content.modelId}{$content.modelId}{/if}">
+  {if $content and $content.modelId}
+    <div id="upgrade">
+      <!-- ko with: vehicle -->
+        <div class="visual" data-upgrade="{$content.upgrade}" data-modelId="{$content.modelId}" data-bind="click: $root.vehicleAndRateDetails">
+          <img alt="{$content.tooltip}" title="{$content.tooltip}" {literal}data-bind="event: {error: $root.placeholder}, attr: {src: $root.upgradeImage}"{/literal} />
+        </div>
+        <form id="upgradeVehiculeForm" method="post" action="/DotcarClient/upgradeVehicle.action" name="upgradeVehiculeForm" data-bind="{literal}event: {submit: $root.upgrade}{/literal}" class="content">
+          {$content.formFields}
+          {if $content.upgrade == 'Y'}
+            <h3 class="h2">{msg desc="upgrade.button.upgrade"}Upgrade your trip!{/msg}</h3>
+          {else}
+            <h3 class="h2">{msg desc="upgrade.button.original"}Original selection{/msg}</h3>
+          {/if}
+          <p><span class="title">{$content.name}</span> <span class="similar">{msg desc="vehicle.similar"}or similar{/msg}</span></p>
+          <p class="price">{$content.price}</p>
+          <span class="arrowlink" data-upgrade="{$content.upgrade}" data-modelId="{$content.modelId}" data-bind="click: $root.vehicleAndRateDetails">{msg desc="vehicle.details"}Vehicle and rate details{/msg}</span>
+          <span class="bt grey"><input value="{$content.buttonLabel}" type="submit" {literal}data-bind="css: {disabled: $root.upgradeDisabled()}"{/literal} /></span>
+        </form>
+      <!-- /ko -->
+    </div>
+  {/if}
+</div>
+{/template}
+
+/**
+ * @param extras
+ */
+{template .recommendedExtras}
+<div id="recommendationsContainer">
+  {if length($extras) > 0}
+    <div id="recommendations" class="extras">
+      <h3 class="h2">{msg desc="options.recommended.title"}Recommended options for your rental{/msg}</h3>
+      <ul class="options">
+        {foreach $recommendedExtra in $extras}
+          <li>
+            <span class="title">{$recommendedExtra.title}</span>
+            <span class="price">+ {$recommendedExtra.price}</span>
+            <a class="extra" href="javascript://" data-extraId="{$recommendedExtra.id}" data-bind="{literal}event: {click: $root.showRecommendedExtra}{/literal}">{msg desc="options.recommended.item.link"}See details{/msg}</a>
+          </li>
+        {/foreach}
+      </ul>
+    </div>
+  {/if}
+</div>
+{/template}
+
+/**
+ * @param content
+ * @param legal
+ */
+{template .form}
+<div id="formContainer" data-corHasChanged="{$content.jsData.corHasChanged}" data-creditCardFeesActivated="{$content.jsData.creditCardFeesActivated}" 
+    data-creditCardMandatory="{$content.jsData.creditCardMandatory}" data-isDebitCard="{$content.jsData.isDebitCard}" 
+    data-hasContractNumber="{$content.jsData.hasContractNumber}" data-couponUpdate="{$content.jsData.couponUpdate}">
+  <h3 class="h2">{msg desc="form.title"}Place your order{/msg}</h3>
+  <div id="loginTypes">
+    {$content.loginContent}
+    {call .guestLogin /}
+  </div>
+  <div id="changeLoginOption">
+    <a href="javascript://">{msg desc="logintypes.option.change"}Already have a Europcar ID?  Click here to login{/msg}</a>
+  </div>
+  <form id="reservationForm" name="reservationForm" action="/DotcarClient/step3submit.action" method="post">
+    {$content.hiddenFormFields}
+    <fieldset id="customer"> 
+      <h3 class="h2" {literal}data-bind="event: { click: $root.toggleContent }"{/literal}>{msg desc="form.driver.title"}1. Driver Details{/msg}</h3>
+      <div class="content">
+        <div class="notice" data-bind="visible: formController.existingDriverController.exists">
+          <h2 class="h3">{msg desc="logintypes.signup.driverexists.title"}Sorry, the details provided match an existing Europcar account.{/msg}</h2>
+          <p>
+            {msg desc="logintypes.signup.driverexists.text"}If you think that you already hold an account, <a href="/EBE/module/render/my-europcar-search-europcar-id" target="_blank">search for your Europcar ID</a>. 
+            If you need further assistance creating your Europcar account, contact our <a href="/EBE/module/render/Contact-Us" target="_blank">customer service team</a>.{/msg}
+          </p>
+        </div>
+        {$content.customerContent}
+        {$content.signupContent}
+      </div>
+    </fieldset>
+    <fieldset id="coupon">
+      <h3 class="h2" {literal}data-bind="event: { click: $root.toggleContent }"{/literal}>{msg desc="form.coupon.title"}2. Have a coupon code? (optional){/msg}</h3>
+      <div class="content">
+        <p>{msg desc="form.coupon.text"}Please enter it here.{/msg}</p>
+        <!-- ko if: couponController.errorMessage() -->
+          <p class="error" data-bind="html: couponController.errorMessage()"></p>
+        <!-- /ko -->
+        <!-- ko if: couponController.infoMessage() -->
+          <p class="notice" data-bind="html: couponController.infoMessage()"></p>
+        <!-- /ko -->
+        {$content.couponContent.content}
+      </div>
+    </fieldset>
+    <fieldset id="payment">
+      <h3 class="h2" {literal}data-bind="event: { click: $root.toggleContent }"{/literal}>{msg desc="form.payment.title"}3. Payment Details{/msg}</h3>
+      <div class="content">
+      {$content.paymentContent.introContent}
+      {if $content.paymentContent.cardDetailsContent}
+        <h3 class="h2">{msg desc="form.payment.creditcard.title"}Credit card details{/msg}</h3>
+        <!-- ko if: formController.creditCardController.errors().length > 0 -->
+          <ul class="errors" data-bind="foreach: formController.creditCardController.errors">
+            <li data-bind="html: $data"></li>
+          </ul>
+        <!-- /ko -->
+        {$content.paymentContent.cardDetailsContent}
+      {/if}
+      <span class="security comodo">{msg desc="form.payment.security"}Comodo Secure{/msg}</span>
+      </div>
+    </fieldset>
+    <fieldset id="ftprogram"> 
+      <h3 class="h2" {literal}data-bind="event: { click: $root.toggleContent }"{/literal}>
+        {msg desc="form.ftprogram.title"}4. Frequent Traveler (optional){/msg}
+        <span class="tooltip"><span class="content">{msg desc="form.ftprogram.tooltip"}Earn miles or points with your rental!  Choose one of our partners below and enter your membership number.{/msg}</span></span>
+      </h3>
+      <div class="content">{$content.ftProgramContent.content}</div>
+    </fieldset>
+    {if $content.flightContent.content}
+      <fieldset id="flight"> 
+        <h3 class="h2" {literal}data-bind="event: { click: $root.toggleContent }"{/literal}>
+          {msg desc="form.flight.title"}5. Arrival/Flight Information (optional){/msg}
+          <span class="tooltip">
+            <span class="content">
+              {msg desc="form.flight.tooltip"}If you need to be met at the airport and/or to allow for late arrivals, please include your flight number (e.g. AF903) when booking.  If you are delayed, we will wait for you for up to two hours even if we should be closed.{/msg}
+            </span>
+          </span>
+        </h3>
+        <div class="content">
+          <p>{msg desc="form.flight.text"}Flight delayed?  We'll wait for you.  Just enter your flight number to guarantee your rental car in case of delays or a change in the arrival terminal.{/msg}</p>
+          {$content.flightContent.content}
+        </div>
+      </fieldset>
+    {/if}
+    <fieldset id="legal"> 
+      <div>{$content.legalContent}</div>
+      <p class="hidden" {literal}data-bind="css: { hidden: waiting() }"{/literal}>
+        {$legal}
+      </p>
+    </fieldset>
+  </form>
+  <div id="additionalCardDetails" class="hidden">
+    <div class="divIssueNumber">
+      <label for="issue-number">{msg desc="form.payment.issuenumber.label"}Issue number{/msg}</label>
+      <input type="text" name="issueNumber" value="" tabindex="75" id="issueNumber" class="text"/>
+    </div>
+    <p class="issueNumberMessage">{msg desc="form.payment.issuenumber.text"}Note: Debit cards can only be used for car rental in the UK or for prepaid bookings from the UK.  For destinations outside the UK, a valid credit card must also be presented. Switch / Solo / Maestro UK cards are not valid outside the UK.{/msg}</p>
+  </div>
+</div>
+{/template}
+
+/**
+ * 
+ */
+{template .guestLogin}
+<fieldset id="guestlogin"> 
+  <h3 class="h2">{msg desc="logintypes.guestlogin.title"}New to Europcar?{/msg}</h3>
+  <p>{msg desc="logintypes.guestlogin.text"}Proceed without creating a Europcar account.{/msg}</p>
+  <a href="javascript://" class="bt" data-tracking-event="mouseup" data-tracking-id="527"><span>{msg desc="logintypes.guestlogin.link"}Continue{/msg}</span></a>
+</fieldset>
+{/template}
+
+/** 
+ * 
+ */
+{template .paymentOption}
+  <!-- ko with: prepaidController -->
+    <!-- ko if: price.prepaidChangeable -->
+    <div id="payment_option">
+      <h3 class="h2">{msg desc="paymentoption.title"}Your rate{/msg}</h3>
+      <!-- ko if: changeWaiting -->
+        <div class="loading inline">
+          <span class="h3">{msg desc="paymentoption.loading"}Loading new rate selection{/msg}</span>
+        </div>
+      <!-- /ko -->
+      <!-- ko ifnot: changeWaiting() --> 
+        <!-- ko if: $root.couponController.couponApplied -->
+          <p class="notice">{msg desc="paymentoption.coupon"}Prices are displayed without coupon discount.{/msg}</p>
+        <!-- /ko -->
+        <!-- ko if: errors().length > 0 -->
+          <ul class="errors" data-bind="foreach: errors">
+            <li data-bind="html: $data"></li>
+          </ul>
+        <!-- /ko -->
+        <ul class="h2">
+          <li>
+            <a href="javascript://" data-bind="{literal}event: { click: $root.changePrepaidToYes }, css: {disabled: $root.paymentChoiceDisabled, active: price.isPrepaid(), highlight: price.onlinePercentage()}{/literal}" data-tracking-event="click" data-tracking-id="525">
+              <span class="checkbox">
+                {msg desc="paymentoption.online"}Pay now price{/msg}
+              </span>
+              <span class="tooltip">
+                  <span class="content">{msg desc="paymentoption.online.tooltip"}Pay for your rental immediately with your personal credit card and take advantage of our best rates.  Please keep in mind, <b>you must present the same credit card once you arrive at the rental location.</b>  Please see the Prepayment Terms and Conditions regarding special conditions for cancellation and modification when booking this payment option.{/msg}</span>
+              </span>
+              <span class="price">
+                <span data-bind="text: price.onlineTotalDisplayPrice()"></span>
+                <!-- ko if: price.onlinePercentage() -->
+                  <span class="off">{msg desc="paymentoption.percentage.1"}That's{/msg} <span data-bind="text: price.onlinePercentage()"></span>{msg desc="paymentoption.percentage.2"}% off your vehicle{/msg}</span>
+                <!-- /ko -->
+              </span>
+            </a>
+          </li>
+          <li>
+            <a href="javascript://" data-bind="{literal}event: { click: $root.changePrepaidToNo }, css: {disabled: $root.paymentChoiceDisabled, active: price.isNotPrepaid(), highlight: price.pickupPercentage()}{/literal}" data-tracking-event="click" data-tracking-id="525">
+              <span class="checkbox">
+                {msg desc="paymentoption.pickup"}Pay at pick up price{/msg}
+              </span>
+              <span class="tooltip">
+                  <span class="content">{msg desc="paymentoption.pickup.tooltip"}You can reserve this vehicle without paying anything up front.  Our most flexible way to reserve, payment will only be required upon collection of the vehicle.  For more information, see our Online Terms and Conditions.{/msg}</span>
+              </span>
+              <span class="price">
+                <span data-bind="text: price.pickupTotalDisplayPrice()"></span>
+                <!-- ko if: price.pickupPercentage() -->
+                  <span class="off">{msg desc="paymentoption.percentage.1"}That's{/msg} <span data-bind="text: price.pickupPercentage()"></span>{msg desc="paymentoption.percentage.2"}% off your vehicle{/msg}</span>
+                <!-- /ko -->
+              </span>
+            </a>
+          </li>
+        </ul>
+      <!-- /ko -->
+    </div>
+    <!-- /ko -->
+  <!-- /ko -->
+{/template}
+
+/**
+ * 
+ */
+{template .pagetools}
+<div class="hidden" {literal}data-bind="css: { hidden: waiting() }"{/literal}>
+  <ul class="tools pagetools">
+    <li class="print js_print" title="{msg desc="tools.print"}Print{/msg}">{msg desc="tools.print"}Print{/msg}</li>
+  </ul>
+</div>
+{/template}
+
+/**
+ * @param contents
+ * @param emissionLegend
+ * @param twoCreditCardsLabel
+ */
+{template .lightboxes}
+  {call eca.templates.common.vehicleAndRateDetails}
+    {param emissionLegend: $emissionLegend /}
+    {param twoCreditCardsLabel: $twoCreditCardsLabel /}
+  {/call}
+  {call .lightboxCountryOfResidence}
+    {param content: $contents.countryOfResidence /}
+  {/call}
+  {call .lightboxContractNumber}
+    {param content: $contents.contractNumber /}
+  {/call}
+  {call .lightboxMinimumAge}
+    {param content: $contents.minimumAge /}
+  {/call}
+  {call .lightboxDriverUpdate}
+    {param content: $contents.driverUpdate /}
+  {/call}
+{/template}
+
+/**
+ * @param content
+ */
+{template .lightboxCountryOfResidence}
+  <div id="lbCor">
+    <div class="loading inline" {literal}data-bind="css: { hidden: !formController.countryOfResidenceController.waiting() }"{/literal}>
+      <span class="h3">{msg desc="lightbox.loading"}Loading change details{/msg}</span>
+    </div>
+    <div {literal}data-bind="css: { hidden: formController.countryOfResidenceController.waiting() }"{/literal}>
+      <ul class="errors" data-bind="foreach: formController.countryOfResidenceController.errors">
+        <li data-bind="html: $data"></li>
+      </ul>
+      <div {literal}data-bind="css: { hidden: formController.countryOfResidenceController.errors().length > 0 }"{/literal}>
+        {$content}
+      </div>
+    </div>
+  </div>
+{/template}
+
+/**
+ * @param content
+ */
+{template .lightboxContractNumber}
+  <div id="lbContract">
+    <div class="loading inline" {literal}data-bind="css: { hidden: !logoutController.waiting() }"{/literal}>
+      <span class="h3">{msg desc="lightbox.loading"}Loading change details{/msg}</span>
+    </div>
+    <div {literal}data-bind="css: { hidden: logoutController.waiting() }"{/literal}>
+      <ul class="errors" data-bind="foreach: logoutController.errors">
+        <li data-bind="html: $data"></li>
+      </ul>
+      <div {literal}data-bind="css: { hidden: logoutController.errors().length > 0 }"{/literal}>
+        {$content}
+      </div>
+    </div>
+  </div>
+{/template}
+
+/**
+ * @param content
+ */
+{template .lightboxMinimumAge}
+  <div id="lbMinAge">
+    <div>
+      {$content}
+    </div>
+  </div>
+{/template}
+
+/**
+ * @param content
+ */
+{template .lightboxDriverUpdate}
+  <div id="lbDriver">
+    <div>
+      {$content}
+    </div>
+  </div>
+{/template}
+
+/** 
+ * @param contents
+ */
+{template .additionalForms}
+  {call .resubmitSelectForm /}
+  {call .logoutForm}
+    {param content: $contents.logoutFormContent /}
+  {/call}
+  {call .originalDriverForm}
+    {param content: $contents.originalDriverFormContent /}
+  {/call}
+{/template}
+
+/** 
+ * 
+ */
+{template .resubmitSelectForm}
+<form id="changePrepaidForm" name="changePrepaidForm" action="step3update.action" method="get">
+  <!-- ko ifnot: initWaiting -->
+    <!-- ko with: prepaidController -->
+      <input type="hidden" name="modelId" data-bind="attr: {literal}{value: $parent.vehicle().modelId}{/literal}">
+      <input type="hidden" name="segmentId" data-bind="attr: {literal}{value: $parent.vehicle().segmentId}{/literal}">
+      <input type="hidden" name="fCollectPrice1" data-bind="attr: {literal}{value: price.otherPrice()}{/literal}">
+      <input type="hidden" name="prepaid" data-bind="attr: {literal}{value: price.otherPrepaid()}{/literal}">
+      <input type="hidden" name="mil" data-bind="attr: {literal}{value: $parent.optionsController.mileageController.mileage.value()}{/literal}">
+      <!-- ko foreach: extras -->
+        <!-- ko if: quantity() > 0 -->
+          <input type="hidden" data-bind="attr: {literal}{name: tcParamName(), value: tc}{/literal}">
+          <input type="hidden" data-bind="attr: {literal}{name: idParamName(), value: id}{/literal}">
+          <input type="hidden" data-bind="attr: {literal}{name: quantityParamName(), value: quantity()}{/literal}">
+        <!-- /ko -->
+      <!-- /ko -->
+    <!-- /ko -->
+  <!-- /ko -->
+</form>
+<form id="updateOptionsForm" name="updateOptionsForm" action="step3update.action" method="get" target="updateOptionsFrame">
+  <!-- ko ifnot: initWaiting -->
+    <input type="hidden" name="nfe-updateOptions" value="true">
+    <input type="hidden" name="modelId" data-bind="attr: {literal}{value: vehicle().modelId}{/literal}">
+    <input type="hidden" name="segmentId" data-bind="attr: {literal}{value: vehicle().segmentId}{/literal}">
+    <input type="hidden" name="fCollectPrice1" data-bind="attr: {literal}{value: prepaidController.price.currentPrice()}{/literal}">
+    <input type="hidden" name="prepaid" data-bind="attr: {literal}{value: prepaidController.price.prepaid()}{/literal}">
+    <input type="hidden" name="mil" data-bind="attr: {literal}{value: optionsController.mileageController.mileage.value()}{/literal}">
+    <!-- ko foreach: optionsController.extrasController.extras -->
+      <!-- ko if: quantity() > 0 -->
+        <input type="hidden" data-bind="attr: {literal}{name: tcParamName(), value: tc}{/literal}">
+        <input type="hidden" data-bind="attr: {literal}{name: idParamName(), value: id}{/literal}">
+        <input type="hidden" data-bind="attr: {literal}{name: quantityParamName(), value: quantity()}{/literal}">
+      <!-- /ko -->
+    <!-- /ko -->
+  <!-- /ko -->
+</form>
+<div id="updateOptionsFrame">
+</div>
+{/template}
+
+/** 
+ * @param content
+ */
+{template .logoutForm}
+  <form id="logoutForm" name="logoutForm" action="/DotcarClient/step3logout.action" method="post">
+    {$content}
+  </form>
+  <form id="logoutBackForm" name="logoutBackForm" action="/DotcarClient/step3logoutBack.action" method="post">
+    {$content}
+  </form>
+{/template}
+
+/** 
+ * @param content
+ */
+{template .originalDriverForm}
+  <form id="originalDriverForm" name="originalDriverForm" action="" method="post">
+    {$content}
+  </form>
+{/template}
