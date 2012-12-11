@@ -1,0 +1,10 @@
+*.DS_Store
+.classpath
+.project
+target
+.springBeans
+war/.settings/org.eclipse.wst.validation.prefs
+war/.settings/org.eclipse.wst.common.component
+war/.settings/org.eclipse.wst.xsl.core.prefs
+
+
